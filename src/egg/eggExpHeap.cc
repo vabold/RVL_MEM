@@ -11,12 +11,12 @@ ExpHeap::ExpHeap( RVL::MEMiHeapHead *handle ) : Heap( handle ) {}
 
 ExpHeap::~ExpHeap( )
 {
-    RVL::MEMDestroyExpHeap( dynamicCastHandleToExp( ) );
+    dynamicCastHandleToExp( )->destroy( );
 }
 
 ExpHeap *ExpHeap::create( void *startAddress, size_t size, u16 opt )
 {
-    ExpHeap *heap = NULL;
+    ExpHeap *heap = nullptr;
     void *buffer = startAddress;
 
     void *endAddress = RoundDown( AddOffset( startAddress, size ), 4 );
@@ -25,12 +25,12 @@ ExpHeap *ExpHeap::create( void *startAddress, size_t size, u16 opt )
     size_t addrRange = GetAddrNum( endAddress ) - GetAddrNum( startAddress );
     if( startAddress > endAddress || addrRange < sizeof( ExpHeap ) + 4 )
     {
-        return NULL;
+        return nullptr;
     }
 
     void *handleStart = AddOffset( startAddress, sizeof( ExpHeap ) );
     RVL::MEMiExpHeapHead *handle =
-            RVL::MEMCreateExpHeapEx( handleStart, addrRange - sizeof( ExpHeap ), opt );
+            RVL::MEMiExpHeapHead::create( handleStart, addrRange - sizeof( ExpHeap ), opt );
     if( handle )
     {
         heap = new( startAddress ) ExpHeap( handle );
@@ -42,7 +42,7 @@ ExpHeap *ExpHeap::create( void *startAddress, size_t size, u16 opt )
 
 ExpHeap *ExpHeap::create( size_t size, Heap *pHeap, u16 opt )
 {
-    ExpHeap *heap = NULL;
+    ExpHeap *heap = nullptr;
 
     if( !pHeap )
     {
@@ -93,20 +93,25 @@ void *ExpHeap::alloc( size_t size, s32 align )
         PANIC( "HEAP ALLOC FAIL (%p, %s): Heap is locked", this, mName );
     }
 
-    return RVL::MEMAllocFromExpHeapEx( dynamicCastHandleToExp( ), size, align );
+    return dynamicCastHandleToExp( )->alloc( size, align );
 }
 
 void ExpHeap::free( void *block )
 {
-    RVL::MEMFreeToExpHeap( dynamicCastHandleToExp( ), block );
+    dynamicCastHandleToExp( )->free( block );
 }
 
-u32 ExpHeap::getAllocatableSize( s32 align )
+u32 ExpHeap::getAllocatableSize( s32 align ) const
 {
-    return RVL::MEMGetAllocatableSizeForExpHeapEx( dynamicCastHandleToExp( ), align );
+    return dynamicCastHandleToExp( )->getAllocatableSize( align );
 }
 
 RVL::MEMiExpHeapHead *ExpHeap::dynamicCastHandleToExp( )
+{
+    return reinterpret_cast<RVL::MEMiExpHeapHead *>( mHandle );
+}
+
+const RVL::MEMiExpHeapHead *ExpHeap::dynamicCastHandleToExp( ) const
 {
     return reinterpret_cast<RVL::MEMiExpHeapHead *>( mHandle );
 }
@@ -123,6 +128,6 @@ ExpHeap *ExpHeap::getRootHeap( )
     return sRootHeap;
 }
 
-ExpHeap *ExpHeap::sRootHeap = NULL;
+ExpHeap *ExpHeap::sRootHeap = nullptr;
 
 } // namespace EGG

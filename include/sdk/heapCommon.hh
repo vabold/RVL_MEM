@@ -2,58 +2,53 @@
 
 #include <sdk/list.hh>
 
+#include <array>
 #include <cstring>
 
 namespace RVL
 {
 
-struct MEMiHeapHead
+class MEMiHeapHead
 {
-    u32 signature;
-    MEMLink link;
-    MEMList childList;
-    void *heapStart;
-    void *heapEnd;
-    u16 optFlag;
+protected:
+    MEMiHeapHead( u32 signature, void *heapStart, void *heapEnd, u16 opt );
+    ~MEMiHeapHead( );
+
+    void fillNoUseMemory( void *address, u32 size );
+    void fillAllocMemory( void *address, u32 size );
+    void fillFreeMemory( void *address, u32 size );
+
+public:
+    MEMList &getChildList( );
+    void *getHeapStart( );
+    void *getHeapEnd( );
+
+    static MEMList &getRootList( );
+    static u32 getFillVal( u32 type );
+    static MEMiHeapHead *findContainHeap( const void *block );
+
+    static constexpr u16 getLinkOffset( )
+    {
+        return offsetof( MEMiHeapHead, mLink );
+    }
+
+private:
+    static MEMiHeapHead *findContainHeap( MEMList *list, const void *block );
+    MEMList &findListContainHeap( ) const;
+
+    u32 mSignature;
+    u16 mOptFlag;
+    MEMLink mLink;
+    MEMList mChildList;
+    void *mHeapStart;
+    void *mHeapEnd;
+
+    static MEMList sRootList;
+    static constexpr std::array<u32, 3> sFillVals = { {
+            0xC3C3C3C3,
+            0xF3F3F3F3,
+            0xD3D3D3D3,
+    } };
 };
 
-void MEMiInitHeapHead( MEMiHeapHead *heap, u32 signature, void *heapStart, void *heapEnd, u16 opt );
-void MEMiFinalizeHeap( MEMiHeapHead *heap );
-MEMiHeapHead *MEMFindContainHeap( const void *block );
-
-void *MEMGetHeapEndAddress( MEMiHeapHead *heap );
-u32 MEMGetFillValForHeap( u32 type );
-
-namespace detail
-{
-
-static inline void FillNoUseMemory( MEMiHeapHead *heap, void *address, u32 size )
-{
-    if( heap->optFlag & 2 )
-    {
-        memset( address, MEMGetFillValForHeap( 0 ), size );
-    }
-}
-
-static inline void FillAllocMemory( MEMiHeapHead *heap, void *address, u32 size )
-{
-    if( heap->optFlag & 1 )
-    {
-        memset( address, 0, size );
-    }
-    else if( heap->optFlag & 2 )
-    {
-        memset( address, MEMGetFillValForHeap( 1 ), size );
-    }
-}
-
-static inline void FillFreeMemory( MEMiHeapHead *heap, void *address, u32 size )
-{
-    if( heap->optFlag & 2 )
-    {
-        memset( address, MEMGetFillValForHeap( 2 ), size );
-    }
-}
-
-} // namespace detail
 } // namespace RVL

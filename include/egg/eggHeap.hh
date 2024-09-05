@@ -1,6 +1,5 @@
 #pragma once
 
-#include <nw4r/ut/list.hh>
 #include <sdk/heapCommon.hh>
 
 namespace EGG
@@ -27,7 +26,7 @@ public:
     virtual Kind getHeapKind( ) const = 0;
     virtual void *alloc( size_t size, s32 align ) = 0;
     virtual void free( void *block ) = 0;
-    virtual u32 getAllocatableSize( s32 align = 4 ) = 0;
+    virtual u32 getAllocatableSize( s32 align = 4 ) const = 0;
 
     void disableAllocation( );
     void enableAllocation( );
@@ -56,18 +55,24 @@ public:
     static Heap *getCurrentHeap( );
     static void *getMemorySpace( );
 
+    static constexpr uintptr_t getOffset( )
+    {
+        // offsetof doesn't work, so instead of hardcoding an offset, we derive it ourselves
+        return reinterpret_cast<uintptr_t>( &reinterpret_cast<Heap *>( NULL )->mLink );
+    }
+
 protected:
     RVL::MEMiHeapHead *mHandle;
     void *mBlock;
     Heap *mParentHeap;
     u16 mFlags;
-    nw4r::ut::Link mLink;
+    RVL::MEMLink mLink;
     const char *mName;
 
-    static nw4r::ut::List sHeapList;
+    static RVL::MEMList sHeapList;
 
     static Heap *sCurrentHeap;
-    static bool sIsHeapListInitialized;
+    static bool sIsHeapInitialized;
     static Heap *sAllocatableHeap;
     static ExpHeap *sRootHeap;
     static void *sMemorySpace;
