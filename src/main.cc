@@ -30,7 +30,7 @@ static void TestBasic_( )
 
     // Check if allocating beyond the heap size fails
     u8 *pY = new u8[ rootHeap->getAllocatableSize( ) + 1 ];
-    ASSERT( pY == NULL );
+    ASSERT( pY == nullptr );
 }
 
 static void TestHeap_( )
@@ -40,7 +40,7 @@ static void TestHeap_( )
 
     // Check if creating a heap with an invalid size fails
     auto *pNoHeap = EGG::ExpHeap::create( rootHeap->getAllocatableSize( ) + 1, rootHeap, 2 );
-    ASSERT( pNoHeap == NULL );
+    ASSERT( pNoHeap == nullptr );
 
     // Check if the heap hierarchy is working correctly
     auto *pHeap0 = EGG::ExpHeap::create( 0x10000, rootHeap, 2 );
@@ -63,14 +63,14 @@ static void TestHeap_( )
     // Check if the allocatable heap takes priority
     pHeap1->becomeAllocatableHeap( );
     u32 *pY = new u32;
-    ASSERT( pY == NULL );
+    ASSERT( pY == nullptr );
 
     // Check if heaps are freed correctly
     pHeap0->destroy( );
     ASSERT( *reinterpret_cast<u32 *>( pHeap0 ) == 0xd3d3d3d3 );
 
     // Reset the allocatable heap - we need to allocate later
-    pHeap0 = NULL;
+    pHeap0 = nullptr;
     pHeap0->becomeAllocatableHeap( );
 
 #ifdef COMMENT
@@ -78,10 +78,10 @@ static void TestHeap_( )
     // Singletons are more prone to use-after-free, so we want to destroy them with the heap
     // The solution is to have the singleton inherit Disposer, which calls the destructor
     // However, singletons are unique in that their destructors are handled by DestroyInstance
-    // A correct implementation will call DestroyInstance, making the instance NULL
+    // A correct implementation will call DestroyInstance, making the instance nullptr
     DemoSingleton::CreateInstance( );
     pHeap1->destroy( );
-    ASSERT( DemoSingleton::Instance( ) == NULL );
+    ASSERT( DemoSingleton::Instance( ) == nullptr );
 #else
     // Because Disposer isn't implemented, check if primitives are correctly freed on heap removal
     u32 *pZ = new( pHeap1, 0x4 ) u32;

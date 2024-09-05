@@ -15,9 +15,10 @@ public:
     Kind getHeapKind( ) const override;
     void *alloc( size_t size, s32 align ) override;
     void free( void *block ) override;
-    u32 getAllocatableSize( s32 align = 4 ) override;
+    u32 getAllocatableSize( s32 align = 4 ) const override;
 
     RVL::MEMiExpHeapHead *dynamicCastHandleToExp( );
+    const RVL::MEMiExpHeapHead *dynamicCastHandleToExp( ) const;
 
     static ExpHeap *create( void *startAddress, size_t size, u16 opt );
     static ExpHeap *create( size_t size, Heap *heap, u16 opt );

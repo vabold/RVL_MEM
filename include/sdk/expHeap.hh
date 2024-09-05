@@ -5,6 +5,15 @@
 namespace RVL
 {
 
+struct Region
+{
+    Region( void *start, void *end );
+    uintptr_t getRange( ) const;
+
+    void *start;
+    void *end;
+};
+
 struct MEMiExpBlockHead;
 
 struct MEMiExpBlockLink
@@ -15,13 +24,28 @@ struct MEMiExpBlockLink
 
 struct MEMiExpBlockList
 {
-    MEMiExpBlockHead *head;
-    MEMiExpBlockHead *tail;
+    MEMiExpBlockHead *insert( MEMiExpBlockHead *block, MEMiExpBlockHead *prev );
+    MEMiExpBlockHead *append( MEMiExpBlockHead *block );
+    MEMiExpBlockHead *remove( MEMiExpBlockHead *block );
+
+    MEMiExpBlockHead *mHead;
+    MEMiExpBlockHead *mTail;
 };
 
 struct MEMiExpBlockHead
 {
-    u16 signature;
+private:
+    MEMiExpBlockHead( const Region &region, u16 signature );
+
+public:
+    static MEMiExpBlockHead *createFree( const Region &region );
+    static MEMiExpBlockHead *createUsed( const Region &region );
+
+    Region getRegion( ) const;
+    void *getMemoryStart( ) const;
+    void *getMemoryEnd( ) const;
+
+    u16 mSignature;
     union
     {
         u16 val;
@@ -31,23 +55,38 @@ struct MEMiExpBlockHead
             u16 alignment : 7;
             u16 groupId : 8;
         } fields;
-    } attribute;
-    u32 size;
-    MEMiExpBlockLink link;
+    } mAttribute;
+    u32 mSize;
+    MEMiExpBlockLink mLink;
 };
 
-struct MEMiExpHeapHead : MEMiHeapHead
+class MEMiExpHeapHead : public MEMiHeapHead
 {
-    MEMiExpBlockList freeBlocks;
-    MEMiExpBlockList usedBlocks;
-    u16 groupId;
-    u16 attribute;
-};
+private:
+    MEMiExpHeapHead( void *end, u16 opt );
+    ~MEMiExpHeapHead( );
 
-MEMiExpHeapHead *MEMCreateExpHeapEx( void *startAddress, size_t size, u16 flag );
-void *MEMDestroyExpHeap( MEMiExpHeapHead *heap );
-void *MEMAllocFromExpHeapEx( MEMiExpHeapHead *heap, size_t size, s32 align );
-void MEMFreeToExpHeap( MEMiExpHeapHead *heap, void *block );
-u32 MEMGetAllocatableSizeForExpHeapEx( MEMiExpHeapHead *heap, s32 align );
+public:
+    static MEMiExpHeapHead *create( void *startAddress, size_t size, u16 flag );
+    void destroy( );
+
+    void *alloc( size_t size, s32 align );
+    void free( void *block );
+    u32 getAllocatableSize( s32 align ) const;
+
+private:
+    void *allocFromHead( size_t size, s32 alignment );
+    void *allocFromTail( size_t size, s32 alignment );
+    void *allocUsedBlockFromFreeBlock( MEMiExpBlockHead *block, void *address, u32 size,
+            s32 direction );
+    bool recycleRegion( const Region &initialRegion );
+
+    MEMiExpBlockList mFreeBlocks;
+    MEMiExpBlockList mUsedBlocks;
+    u16 mGroupId;
+    u16 mAttribute;
+
+    static constexpr u32 EXP_HEAP_SIGNATURE = 0x45585048; // EXPH
+};
 
 } // namespace RVL

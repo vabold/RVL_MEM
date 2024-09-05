@@ -7,21 +7,25 @@ namespace RVL
 
 struct MEMLink
 {
-    void *prevObject;
-    void *nextObject;
+    void *mPrevObject;
+    void *mNextObject;
 };
 
 struct MEMList
 {
-    void *headObject;
-    void *tailObject;
-    u16 numObjects;
-    u16 offset;
-};
+    MEMList( u16 offset );
+    void append( void *object );
+    void remove( void *object );
+    void *getNext( void *object );
 
-void MEMInitList( MEMList *list, u16 offset );
-void MEMAppendListObject( MEMList *list, void *object );
-void MEMRemoveListObject( MEMList *list, void *object );
-void *MEMGetNextListObject( MEMList *list, void *object );
+    void *mHeadObject;
+    void *mTailObject;
+    u16 mNumObjects;
+    u16 mOffset;
+
+private:
+    void setFirstObject( void *object );
+    MEMLink *getLink( void *object );
+};
 
 } // namespace RVL

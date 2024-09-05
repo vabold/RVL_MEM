@@ -5,29 +5,70 @@
 namespace RVL
 {
 
-static MEMList sRootList;
-static bool sRootListInitialized = false;
-
-static u32 sFillVals[ 3 ] = {
-        0xC3C3C3C3,
-        0xF3F3F3F3,
-        0xD3D3D3D3,
-};
-
-static MEMiHeapHead *FindContainHeap_( MEMList *list, const void *block )
+MEMiHeapHead::MEMiHeapHead( u32 signature, void *heapStart, void *heapEnd, u16 opt )
+    : mChildList( MEMList( getLinkOffset( ) ) )
 {
-    MEMiHeapHead *heap = NULL;
-    MEMiHeapHead *search;
+    mSignature = signature;
+    mHeapStart = heapStart;
+    mHeapEnd = heapEnd;
+    mOptFlag = opt;
 
-    while( ( heap = reinterpret_cast<MEMiHeapHead *>( MEMGetNextListObject( list, heap ) ) ) )
+    fillNoUseMemory( heapStart, GetAddrNum( heapEnd ) - GetAddrNum( heapStart ) );
+
+    findListContainHeap( ).append( this );
+}
+
+MEMiHeapHead::~MEMiHeapHead( )
+{
+    findListContainHeap( ).remove( this );
+    mSignature = 0;
+}
+
+void MEMiHeapHead::fillNoUseMemory( void *address, u32 size )
+{
+    if( mOptFlag & 2 )
     {
-        if( GetAddrNum( heap->heapStart ) > GetAddrNum( block ) ||
-                GetAddrNum( block ) >= GetAddrNum( heap->heapEnd ) )
+        memset( address, getFillVal( 0 ), size );
+    }
+}
+
+void MEMiHeapHead::fillAllocMemory( void *address, u32 size )
+{
+    if( mOptFlag & 1 )
+    {
+        memset( address, 0, size );
+    }
+    else if( mOptFlag & 2 )
+    {
+        memset( address, getFillVal( 1 ), size );
+    }
+}
+
+void MEMiHeapHead::fillFreeMemory( void *address, u32 size )
+{
+    if( mOptFlag & 2 )
+    {
+        memset( address, getFillVal( 2 ), size );
+    }
+}
+
+MEMiHeapHead *MEMiHeapHead::findContainHeap( const void *block )
+{
+    return findContainHeap( &sRootList, block );
+}
+
+MEMiHeapHead *MEMiHeapHead::findContainHeap( MEMList *list, const void *block )
+{
+    MEMiHeapHead *heap = nullptr;
+    while( ( heap = reinterpret_cast<MEMiHeapHead *>( list->getNext( heap ) ) ) )
+    {
+        if( GetAddrNum( heap->mHeapStart ) > GetAddrNum( block ) ||
+                GetAddrNum( block ) >= GetAddrNum( heap->mHeapEnd ) )
         {
             continue;
         }
 
-        search = FindContainHeap_( &heap->childList, block );
+        MEMiHeapHead *search = findContainHeap( &heap->mChildList, block );
         if( search )
         {
             return search;
@@ -36,62 +77,41 @@ static MEMiHeapHead *FindContainHeap_( MEMList *list, const void *block )
         return heap;
     }
 
-    return NULL;
+    return nullptr;
 }
 
-static MEMList *FindListContainHeap_( MEMiHeapHead *heap )
+MEMList &MEMiHeapHead::findListContainHeap( ) const
 {
-    MEMList *list = &sRootList;
-    MEMiHeapHead *containHeap = FindContainHeap_( list, heap );
-    if( containHeap )
-    {
-        list = &containHeap->childList;
-    }
-
-    return list;
+    MEMiHeapHead *containHeap = findContainHeap( this );
+    return containHeap ? containHeap->getChildList( ) : getRootList( );
 }
 
-void MEMiInitHeapHead( MEMiHeapHead *heap, u32 signature, void *heapStart, void *heapEnd, u16 opt )
+MEMList &MEMiHeapHead::getChildList( )
 {
-    heap->signature = signature;
-    heap->heapStart = heapStart;
-    heap->heapEnd = heapEnd;
-    heap->optFlag = opt;
-
-    u32 size = GetAddrNum( heapEnd ) - GetAddrNum( heapStart );
-    detail::FillNoUseMemory( heap, heapStart, size );
-
-    MEMInitList( &heap->childList, offsetof( MEMiHeapHead, link ) );
-
-    if( !sRootListInitialized )
-    {
-        MEMInitList( &sRootList, offsetof( MEMiHeapHead, link ) );
-        sRootListInitialized = true;
-    }
-
-    MEMAppendListObject( FindListContainHeap_( heap ), heap );
+    return mChildList;
 }
 
-void MEMiFinalizeHeap( MEMiHeapHead *heap )
+MEMList &MEMiHeapHead::getRootList( )
 {
-    MEMRemoveListObject( FindListContainHeap_( heap ), heap );
-    heap->signature = 0;
+    return sRootList;
 }
 
-MEMiHeapHead *MEMFindContainHeap( const void *block )
+void *MEMiHeapHead::getHeapStart( )
 {
-    return FindContainHeap_( &sRootList, block );
+    return mHeapStart;
 }
 
-void *MEMGetHeapEndAddress( MEMiHeapHead *heap )
+void *MEMiHeapHead::getHeapEnd( )
 {
-    return heap->heapEnd;
+    return mHeapEnd;
 }
 
-u32 MEMGetFillValForHeap( u32 type )
+u32 MEMiHeapHead::getFillVal( u32 type )
 {
     ASSERT( type < 3 );
     return sFillVals[ type ];
 }
+
+MEMList MEMiHeapHead::sRootList = MEMList( MEMiHeapHead::getLinkOffset( ) );
 
 } // namespace RVL

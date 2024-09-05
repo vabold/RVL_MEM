@@ -3,100 +3,94 @@
 namespace RVL
 {
 
-static inline MEMLink *GetLink( MEMList *list, void *object )
+// ================================
+//     PUBLIC FUNCTIONS
+// ================================
+
+MEMList::MEMList( u16 offset )
 {
-    return reinterpret_cast<MEMLink *>( GetAddrNum( object ) + list->offset );
+    mHeadObject = nullptr;
+    mTailObject = nullptr;
+    mNumObjects = 0;
+    mOffset = offset;
 }
 
-static void SetFirstObject_( MEMList *list, void *object )
+void MEMList::append( void *object )
 {
-    ASSERT( list != NULL );
-    ASSERT( object != NULL );
+    ASSERT( object );
 
-    MEMLink *link = GetLink( list, object );
-
-    link->nextObject = NULL;
-    link->prevObject = NULL;
-
-    list->headObject = object;
-    list->tailObject = object;
-    ++list->numObjects;
-}
-
-void MEMInitList( MEMList *list, u16 offset )
-{
-    ASSERT( list != NULL );
-
-    list->headObject = NULL;
-    list->tailObject = NULL;
-    list->numObjects = 0;
-    list->offset = offset;
-}
-
-void MEMAppendListObject( MEMList *list, void *object )
-{
-    ASSERT( list != NULL );
-    ASSERT( object != NULL );
-
-    if( list->headObject == NULL )
+    if( !mHeadObject )
     {
-        SetFirstObject_( list, object );
+        setFirstObject( object );
     }
     else
     {
-        MEMLink *link = GetLink( list, object );
+        MEMLink *link = getLink( object );
 
-        link->prevObject = list->tailObject;
-        link->nextObject = NULL;
+        link->mPrevObject = mTailObject;
+        link->mNextObject = nullptr;
 
-        GetLink( list, list->tailObject )->nextObject = object;
-        list->tailObject = object;
-        ++list->numObjects;
+        getLink( mTailObject )->mNextObject = object;
+        mTailObject = object;
+        ++mNumObjects;
     }
 }
 
-void MEMRemoveListObject( MEMList *list, void *object )
+void MEMList::remove( void *object )
 {
-    ASSERT( list != NULL );
-    ASSERT( object != NULL );
+    ASSERT( object );
 
-    MEMLink *link = GetLink( list, object );
+    MEMLink *link = getLink( object );
 
-    if( link->prevObject == NULL )
+    if( !link->mPrevObject )
     {
-        list->headObject = link->nextObject;
+        mHeadObject = link->mNextObject;
     }
     else
     {
-        GetLink( list, link->prevObject )->nextObject = link->nextObject;
+        getLink( link->mPrevObject )->mNextObject = link->mNextObject;
     }
 
-    if( link->nextObject == NULL )
+    if( !link->mNextObject )
     {
-        list->tailObject = link->prevObject;
+        mTailObject = link->mPrevObject;
     }
     else
     {
-        GetLink( list, link->nextObject )->prevObject = link->prevObject;
+        getLink( link->mNextObject )->mPrevObject = link->mPrevObject;
     }
 
-    link->prevObject = NULL;
-    link->nextObject = NULL;
-    --list->numObjects;
+    link->mPrevObject = nullptr;
+    link->mNextObject = nullptr;
+    --mNumObjects;
 }
 
-void *MEMGetNextListObject( MEMList *list, void *object )
+void *MEMList::getNext( void *object )
 {
-    ASSERT( list != NULL );
+    return object ? getLink( object )->mNextObject : mHeadObject;
+}
 
-    if( object == NULL )
-    {
-        return list->headObject;
-    }
-    else
-    {
-        return GetLink( list, object )->nextObject;
-    }
+// ================================
+//     PRIVATE FUNCTIONS
+// ================================
+
+void MEMList::setFirstObject( void *object )
+{
+    ASSERT( object );
+
+    MEMLink *link = getLink( object );
+
+    link->mNextObject = nullptr;
+    link->mPrevObject = nullptr;
+
+    mHeadObject = object;
+    mTailObject = object;
+    ++mNumObjects;
+}
+
+MEMLink *MEMList::getLink( void *object )
+{
+    return reinterpret_cast<MEMLink *>( GetAddrNum( object ) + mOffset );
 }
 
 } // namespace RVL

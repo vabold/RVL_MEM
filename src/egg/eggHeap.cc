@@ -8,22 +8,22 @@ namespace EGG
 
 Heap::Heap( RVL::MEMiHeapHead *handle ) : mHandle( handle )
 {
-    if( !sIsHeapListInitialized )
+    if( !sIsHeapInitialized )
     {
         PANIC( "Cannot create a heap before calling Heap::initalize" );
     }
 
-    mBlock = NULL;
-    mParentHeap = NULL;
+    mBlock = nullptr;
+    mParentHeap = nullptr;
     mName = "NoName";
     mFlags = 0;
 
-    nw4r::ut::List_Append( &sHeapList, this );
+    sHeapList.append( this );
 }
 
 Heap::~Heap( )
 {
-    nw4r::ut::List_Remove( &sHeapList, this );
+    sHeapList.remove( this );
 }
 
 void Heap::disableAllocation( )
@@ -67,7 +67,7 @@ void *Heap::getStartAddress( )
 
 void *Heap::getEndAddress( )
 {
-    return RVL::MEMGetHeapEndAddress( mHandle );
+    return mHandle->getHeapEnd( );
 }
 
 const char *Heap::getName( ) const
@@ -94,11 +94,7 @@ void Heap::initialize( )
 {
     constexpr size_t MEMORY_SPACE_SIZE = 0x1000000;
 
-    // offsetof doesn't work, so instead of hardcoding an offset, we derive it ourselves
-    uintptr_t offset = reinterpret_cast<uintptr_t>( &reinterpret_cast<Heap *>( NULL )->mLink );
-
-    nw4r::ut::List_Init( &sHeapList, offset );
-    sIsHeapListInitialized = true;
+    sIsHeapInitialized = true;
 
     sMemorySpace = malloc( MEMORY_SPACE_SIZE );
     ExpHeap::initRootHeap( sMemorySpace, MEMORY_SPACE_SIZE );
@@ -120,7 +116,7 @@ void *Heap::alloc( size_t size, int align, Heap *pHeap )
             WARN( "HEAP ALLOC FAIL (%p, %s): Allocatable heap is %p (%s)", pHeap, pHeap->getName( ),
                     sAllocatableHeap, sAllocatableHeap->getName( ) );
 
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -153,14 +149,14 @@ void *Heap::alloc( size_t size, int align, Heap *pHeap )
     }
 
     WARN( "HEAP ALLOC FAIL: Cannot allocate %d from heap %p", size, pHeap );
-    return NULL;
+    return nullptr;
 }
 
 void Heap::free( void *block, Heap *pHeap )
 {
     if( !pHeap )
     {
-        RVL::MEMiHeapHead *handle = RVL::MEMFindContainHeap( block );
+        RVL::MEMiHeapHead *handle = RVL::MEMiHeapHead::findContainHeap( block );
         if( !handle )
         {
             return;
@@ -178,44 +174,27 @@ void Heap::free( void *block, Heap *pHeap )
 
 Heap *Heap::findHeap( RVL::MEMiHeapHead *handle )
 {
-    Heap *heap = NULL;
-
-    if( sIsHeapListInitialized )
+    Heap *node = nullptr;
+    while( ( node = reinterpret_cast<Heap *>( sHeapList.getNext( node ) ) ) )
     {
-        Heap *node = NULL;
-        while( ( node = reinterpret_cast<Heap *>( nw4r::ut::List_GetNext( &sHeapList, node ) ) ) )
+        if( node->mHandle == handle )
         {
-            if( node->mHandle == handle )
-            {
-                heap = node;
-                break;
-            }
+            return node;
         }
     }
 
-    return heap;
+    return nullptr;
 }
 
 Heap *Heap::findContainHeap( const void *block )
 {
-    Heap *heap = NULL;
-
-    if( RVL::MEMiHeapHead *handle = RVL::MEMFindContainHeap( block ) )
-    {
-        heap = findHeap( handle );
-    }
-
-    return heap;
+    RVL::MEMiHeapHead *handle = RVL::MEMiHeapHead::findContainHeap( block );
+    return handle ? findHeap( handle ) : nullptr;
 }
 
 ExpHeap *Heap::dynamicCastToExp( Heap *heap )
 {
-    if( heap->getHeapKind( ) == Kind::Expanded )
-    {
-        return reinterpret_cast<ExpHeap *>( heap );
-    }
-
-    return NULL;
+    return heap->getHeapKind( ) == Kind::Expanded ? reinterpret_cast<ExpHeap *>( heap ) : nullptr;
 }
 
 Heap *Heap::getCurrentHeap( )
@@ -232,12 +211,12 @@ void *Heap::getMemorySpace( )
 
 void *operator new( size_t size ) noexcept
 {
-    return EGG::Heap::alloc( size, 4, NULL );
+    return EGG::Heap::alloc( size, 4, nullptr );
 }
 
 void *operator new( size_t size, int align ) noexcept
 {
-    return EGG::Heap::alloc( size, align, NULL );
+    return EGG::Heap::alloc( size, align, nullptr );
 }
 
 void *operator new( size_t size, EGG::Heap *heap, int align ) noexcept
@@ -252,12 +231,12 @@ void *operator new( size_t /* size */, void *block ) noexcept
 
 void *operator new[]( size_t size ) noexcept
 {
-    return EGG::Heap::alloc( size, 4, NULL );
+    return EGG::Heap::alloc( size, 4, nullptr );
 }
 
 void *operator new[]( size_t size, int align ) noexcept
 {
-    return EGG::Heap::alloc( size, align, NULL );
+    return EGG::Heap::alloc( size, align, nullptr );
 }
 
 void *operator new[]( size_t size, EGG::Heap *heap, int align ) noexcept
@@ -267,29 +246,29 @@ void *operator new[]( size_t size, EGG::Heap *heap, int align ) noexcept
 
 void operator delete( void *block ) noexcept
 {
-    EGG::Heap::free( block, NULL );
+    EGG::Heap::free( block, nullptr );
 }
 
 void operator delete( void *block, size_t size ) noexcept
 {
     (void)size;
-    EGG::Heap::free( block, NULL );
+    EGG::Heap::free( block, nullptr );
 }
 
 void operator delete[]( void *block ) noexcept
 {
-    EGG::Heap::free( block, NULL );
+    EGG::Heap::free( block, nullptr );
 }
 
 void operator delete[]( void *block, size_t size ) noexcept
 {
     (void)size;
-    EGG::Heap::free( block, NULL );
+    EGG::Heap::free( block, nullptr );
 }
 
-nw4r::ut::List EGG::Heap::sHeapList;
+RVL::MEMList EGG::Heap::sHeapList = RVL::MEMList( EGG::Heap::getOffset( ) );
 
-EGG::Heap *EGG::Heap::sCurrentHeap = NULL;
-bool EGG::Heap::sIsHeapListInitialized = false;
-EGG::Heap *EGG::Heap::sAllocatableHeap = NULL;
-void *EGG::Heap::sMemorySpace = NULL;
+EGG::Heap *EGG::Heap::sCurrentHeap = nullptr;
+bool EGG::Heap::sIsHeapInitialized = false;
+EGG::Heap *EGG::Heap::sAllocatableHeap = nullptr;
+void *EGG::Heap::sMemorySpace = nullptr;
