@@ -238,6 +238,26 @@ u32 MEMiExpHeapHead::getAllocatableSize( s32 align ) const
     return maxSize;
 }
 
+void MEMiExpHeapHead::visitAllocated( Visitor visitor, uintptr_t param )
+{
+    for( MEMiExpBlockHead *block = mUsedBlocks.mHead; block; )
+    {
+        MEMiExpBlockHead *next = block->mLink.next;
+        visitor( block->getMemoryStart( ), this, param );
+        block = next;
+    }
+}
+
+u16 MEMiExpHeapHead::getGroupID( ) const
+{
+    return mGroupId;
+}
+
+void MEMiExpHeapHead::setGroupID( u16 groupID )
+{
+    mGroupId = groupID;
+}
+
 // ================================
 //     ALLOCATION FUNCTIONS
 // ================================

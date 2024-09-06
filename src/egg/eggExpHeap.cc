@@ -107,6 +107,27 @@ u32 ExpHeap::getAllocatableSize( s32 align ) const
     return dynamicCastHandleToExp( )->getAllocatableSize( align );
 }
 
+void ExpHeap::addGroupSize( void *block, RVL::MEMiHeapHead * /* heap */, uintptr_t param )
+{
+    RVL::MEMiExpBlockHead *blockHead = static_cast<RVL::MEMiExpBlockHead *>(
+            SubOffset( block, sizeof( RVL::MEMiExpBlockHead ) ) );
+    u16 groupID = blockHead->mAttribute.fields.groupId;
+
+    GroupSizeRecord *record = reinterpret_cast<GroupSizeRecord *>( param );
+    record->addSize( groupID, blockHead->mSize );
+}
+
+void ExpHeap::calcGroupSize( GroupSizeRecord *record )
+{
+    record->reset( );
+    dynamicCastHandleToExp( )->visitAllocated( addGroupSize, GetAddrNum( record ) );
+}
+
+void ExpHeap::setGroupID( u16 groupID )
+{
+    return dynamicCastHandleToExp( )->setGroupID( groupID );
+}
+
 RVL::MEMiExpHeapHead *ExpHeap::dynamicCastHandleToExp( )
 {
     return reinterpret_cast<RVL::MEMiExpHeapHead *>( mHandle );
@@ -127,6 +148,29 @@ void ExpHeap::initRootHeap( void *startAddress, size_t size )
 ExpHeap *ExpHeap::getRootHeap( )
 {
     return sRootHeap;
+}
+
+ExpHeap::GroupSizeRecord::GroupSizeRecord( )
+{
+    reset( );
+}
+
+void ExpHeap::GroupSizeRecord::reset( )
+{
+    for( auto &entry : mEntries )
+    {
+        entry = 0;
+    }
+}
+
+size_t ExpHeap::GroupSizeRecord::getGroupSize( u16 groupID ) const
+{
+    return mEntries[ groupID ];
+}
+
+void ExpHeap::GroupSizeRecord::addSize( u16 groupID, size_t size )
+{
+    mEntries[ groupID ] += size;
 }
 
 ExpHeap *ExpHeap::sRootHeap = nullptr;

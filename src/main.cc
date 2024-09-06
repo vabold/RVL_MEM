@@ -154,6 +154,33 @@ static void TestHeap_( )
 
     pPrevHeap->becomeCurrentHeap( );
 
+    // Check if group IDs are working correctly
+    {
+        EGG::ExpHeap::GroupSizeRecord record;
+        std::array<void *, 10> blocks;
+
+        // Allocate blocks in various group IDs
+        for( size_t i = 0; i < blocks.size( ); ++i )
+        {
+            rootHeap->setGroupID( i );
+            blocks[ i ] = EGG::Heap::alloc( 0x1000 * ( i + 1 ), 0x8, nullptr );
+        }
+
+        // Check that the group IDs are being applied to the memory blocks correctly
+        rootHeap->calcGroupSize( &record );
+        for( size_t i = 0; i < blocks.size( ); ++i )
+        {
+            DEBUG( "Group ID: %d; size: 0x%x", i, record.getGroupSize( i ) );
+        }
+
+        // Clean up
+        for( auto *&block : blocks )
+        {
+            EGG::Heap::free( block, nullptr );
+        }
+        rootHeap->setGroupID( 0 );
+    }
+
     // Check if heap is unnecessarily fragmented
     size_t spacePost = rootHeap->getAllocatableSize( 0x20 );
     ASSERT( spacePre == spacePost );
