@@ -16,6 +16,7 @@ struct MEMList
     MEMList( u16 offset );
     void append( void *object );
     void remove( void *object );
+    void *getFirst( );
     void *getNext( void *object );
 
     void *mHeadObject;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <egg/eggDisposer.hh>
+
 #include <sdk/heapCommon.hh>
 
 #include <new>
@@ -9,7 +11,7 @@ namespace EGG
 
 class ExpHeap;
 
-class Heap
+class Heap : Disposer
 {
 public:
     enum class Kind
@@ -30,9 +32,15 @@ public:
     virtual void free( void *block ) = 0;
     virtual u32 getAllocatableSize( s32 align = 4 ) const = 0;
 
+    void dispose( );
+
     void disableAllocation( );
     void enableAllocation( );
     bool tstDisableAllocation( ) const;
+
+    void appendDisposer( Disposer *disposer );
+    void removeDisposer( Disposer *disposer );
+
     Heap *becomeAllocatableHeap( );
     Heap *becomeCurrentHeap( );
     void registerHeapBuffer( void *buffer );
@@ -69,6 +77,7 @@ protected:
     Heap *mParentHeap;
     u16 mFlags;
     RVL::MEMLink mLink;
+    RVL::MEMList mChildren;
     const char *mName;
 
     static RVL::MEMList sHeapList;

@@ -65,6 +65,11 @@ void MEMList::remove( void *object )
     --mNumObjects;
 }
 
+void *MEMList::getFirst( )
+{
+    return getNext( nullptr );
+}
+
 void *MEMList::getNext( void *object )
 {
     return object ? getLink( object )->mNextObject : mHeadObject;
