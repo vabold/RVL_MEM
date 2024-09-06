@@ -2,6 +2,8 @@
 
 #include <sdk/heapCommon.hh>
 
+#include <new>
+
 namespace EGG
 {
 
@@ -83,7 +85,6 @@ protected:
 void *operator new( size_t size ) noexcept;
 void *operator new( size_t size, int align ) noexcept;
 void *operator new( size_t size, EGG::Heap *heap, int align ) noexcept;
-void *operator new( size_t size, void *block ) noexcept;
 void *operator new[]( size_t size ) noexcept;
 void *operator new[]( size_t size, int align ) noexcept;
 void *operator new[]( size_t size, EGG::Heap *heap, int align ) noexcept;

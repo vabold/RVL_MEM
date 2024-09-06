@@ -1,5 +1,7 @@
 #include <egg/eggExpHeap.hh>
 
+#include <vector>
+
 static void TestBasic_( )
 {
     auto *rootHeap = EGG::ExpHeap::getRootHeap( );
@@ -94,6 +96,19 @@ static void TestHeap_( )
     ASSERT( spacePre == spacePost );
 }
 
+static void TestUse_( )
+{
+    // Check if std::vector reallocates correctly
+    std::vector<int> v;
+    v.push_back( 0x55 );
+    v.push_back( 0xaa );
+    v.push_back( 0x38 );
+    v.push_back( 0x2d );
+
+    ASSERT( GetAddrNum( v.data( ) ) > GetAddrNum( EGG::Heap::getMemorySpace( ) ) );
+    ASSERT( GetAddrNum( v.data( ) ) < GetAddrNum( EGG::Heap::getMemorySpace( ) ) + 0x1000000 );
+}
+
 int main( )
 {
 #ifdef COMMENT
@@ -107,6 +122,7 @@ int main( )
 
     TestBasic_( );
     TestHeap_( );
+    TestUse_( );
 
     REPORT( "Tests successful!" );
 }
