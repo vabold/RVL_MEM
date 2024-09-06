@@ -11,6 +11,7 @@ ExpHeap::ExpHeap( RVL::MEMiHeapHead *handle ) : Heap( handle ) {}
 
 ExpHeap::~ExpHeap( )
 {
+    dispose( );
     dynamicCastHandleToExp( )->destroy( );
 }
 

@@ -6,7 +6,7 @@
 namespace EGG
 {
 
-Heap::Heap( RVL::MEMiHeapHead *handle ) : mHandle( handle )
+Heap::Heap( RVL::MEMiHeapHead *handle ) : mHandle( handle ), mChildren( Disposer::getLinkOffset( ) )
 {
     if( !sIsHeapInitialized )
     {
@@ -26,6 +26,17 @@ Heap::~Heap( )
     sHeapList.remove( this );
 }
 
+void Heap::dispose( )
+{
+    Disposer *node = nullptr;
+    while( ( node = reinterpret_cast<Disposer *>( mChildren.getFirst( ) ) ) )
+    {
+        node->~Disposer( );
+    }
+
+    ASSERT( !mChildren.mHeadObject && !mChildren.mTailObject );
+}
+
 void Heap::disableAllocation( )
 {
     mFlags |= 1;
@@ -39,6 +50,16 @@ void Heap::enableAllocation( )
 bool Heap::tstDisableAllocation( ) const
 {
     return mFlags & 1;
+}
+
+void Heap::appendDisposer( Disposer *disposer )
+{
+    mChildren.append( disposer );
+}
+
+void Heap::removeDisposer( Disposer *disposer )
+{
+    mChildren.remove( disposer );
 }
 
 Heap *Heap::becomeAllocatableHeap( )
