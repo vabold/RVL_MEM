@@ -224,11 +224,6 @@ void *operator new( size_t size, EGG::Heap *heap, int align ) noexcept
     return EGG::Heap::alloc( size, align, heap );
 }
 
-void *operator new( size_t /* size */, void *block ) noexcept
-{
-    return block;
-}
-
 void *operator new[]( size_t size ) noexcept
 {
     return EGG::Heap::alloc( size, 4, nullptr );

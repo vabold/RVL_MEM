@@ -1,8 +1,7 @@
 #include <sdk/expHeap.hh>
 
-#include <egg/eggHeap.hh> // placement new
-
 #include <limits>
+#include <new> // placement new
 
 namespace RVL
 {
