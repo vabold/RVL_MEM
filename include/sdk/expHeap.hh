@@ -2,6 +2,8 @@
 
 #include <sdk/heapCommon.hh>
 
+#include <functional>
+
 namespace RVL
 {
 
@@ -67,12 +69,18 @@ private:
     ~MEMiExpHeapHead( );
 
 public:
+    typedef std::function<void( void *, MEMiHeapHead *, uintptr_t )> Visitor;
+
     static MEMiExpHeapHead *create( void *startAddress, size_t size, u16 flag );
     void destroy( );
 
     void *alloc( size_t size, s32 align );
     void free( void *block );
     u32 getAllocatableSize( s32 align ) const;
+    void visitAllocated( Visitor visitor, uintptr_t param );
+
+    u16 getGroupID( ) const;
+    void setGroupID( u16 groupID );
 
 private:
     void *allocFromHead( size_t size, s32 alignment );
